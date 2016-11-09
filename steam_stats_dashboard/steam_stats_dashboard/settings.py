@@ -11,16 +11,23 @@ https://docs.djangoproject.com/en/1.10/ref/settings/
 """
 
 import os
+import configparser
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+PROJECT_NAME = 'steam_stats_dashboard'
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# GET KEYS FROM CONFIG FILES
+try:
+    config = configparser.RawConfigParser()
+    config.read(os.path.join(BASE_DIR, PROJECT_NAME, 'config', 'keys.ini'))
+
+    STEAM_API_KEY = config['steam_api']['key']
+    SECRET_KEY = config['django_secret_key']['secret_key']
+except:
+    print('Error getting project keys')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'wgh06wp(mov5a1g@mo3f&h!pxx%lswb_f%b*pd!@h7y$6e%!%n'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
