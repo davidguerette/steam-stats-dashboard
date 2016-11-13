@@ -10,5 +10,5 @@ urlpatterns = [
     # url(r'^admin/', admin.site.urls),
     url(r'^$', views.home, name='home'),
     url(r'^get-steam-id-public/$', views.get_steam_id_public, name='get_steam_id_public'),
-    # url(r'^user/([0-9]{17})$', views.user_stats, name='user_stats')
+    url(r'^player/([0-9]{17})$', views.player_stats, name='player_stats')
 ]
