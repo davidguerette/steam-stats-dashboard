@@ -38,17 +38,28 @@ class Player:
 
     ############# Helper methods ###############
 
+    def validate_user_input_steam_id(self):
+        ''' Validate the user-provided numeric steam_id (instance attribute) is valid '''
+        response = self.get_player_summaries()
+        try:
+            steam_id = response.json()['response']['players']['player'][0]['steamid']
+        except KeyError as e:
+            raise "Could not validate user-input steam id: {}".format(e)
+
+        return steam_id
+
     def get_steam_id_from_vanity_name(self, input_user_name):
         ''' Get user's SteamID64 from vanity url name
-            @param str user_name: the vantiy user name associated with the user account
+            @param str input_user_name: the vantiy user name associated with the user account
             @return steam_id or None
 
             invalid response: {'response': {'message': 'No match', 'success': 42}}
             valid response: { "response": { "steamid": "76561197969470540", "success": 1 } }
         '''
+        steam_id = None
         response = self.resolve_vanity_url(input_user_name).json()['response']
 
         if response.get('success') == SteamAPI.NAME_SUCCESS_MATCH and response.get('steamid'):
             steam_id = response.get('steamid')
 
-        return steam_id or None
+        return steam_id
