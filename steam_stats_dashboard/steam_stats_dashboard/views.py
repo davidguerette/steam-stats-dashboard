@@ -5,6 +5,7 @@ from django.urls import reverse
 import re
 
 from .helpers.player import Player
+from .helpers.steam_api import SteamAPIInvalidUserError
 
 def home(request):
     ''' View for site home '''
@@ -13,19 +14,22 @@ def home(request):
 def get_steam_id_public(request):
     ''' Get user's Steam id to be used for subsequent API calls using available public profile data '''
     input_steam_uid = request.GET['steam_uid'].strip() # Either id or vanity user name
-    verified_steam_id_64 = None
+    steam_id_64 = None
 
     # Check for user-provided steam id first
     if re.fullmatch("^[0-9]{17}$", input_steam_uid):
-        verified_steam_id_64 = Player(input_steam_uid).validate_user_input_steam_id()
+        # Use 64 bit Steam ID returned from API
+        steam_id_64 = Player(input_steam_uid).validate_user_input_steam_id()
     else:
         # Try getting steam id from vanity url name
-        verified_steam_id_64 = Player().get_steam_id_from_vanity_name(input_steam_uid)
+        steam_id_64 = Player.get_steam_id_from_vanity_url_name(input_steam_uid)
 
-    if verified_steam_id_64:
-        return HttpResponseRedirect(reverse('player_stats', kwargs={'steam_id': verified_steam_id_64}))
+    if steam_id_64:
+        return HttpResponseRedirect(reverse('player_stats', kwargs={'steam_id': steam_id_64}))
     else:
         return HttpResponse('could not get steam id')
 
 def player_stats(request, steam_id):
-    return HttpResponse('player stats dashbaord page. user id: {}'.format(steam_id))
+    ''' Get and display stats for requested player '''
+    player = Player(steam_id)
+    return HttpResponse('valid player - stats page')
