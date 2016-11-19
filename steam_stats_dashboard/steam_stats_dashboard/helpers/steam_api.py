@@ -51,7 +51,7 @@ class SteamAPI:
 
     @classmethod
     def _build_params_dict(cls, params):
-        ''' Returns complete params dict for request '''
+        ''' Add request-specific params to base params and return result dict '''
         params_dict = {
             "key": settings.STEAM_API_KEY,
             "format": "json",
@@ -68,7 +68,6 @@ class SteamAPI:
             @param class const version
             @param dict params
             @return response if success, None if unauthorized request
-            @
         '''
         response = requests.get(cls._build_url(interface, method, version), params=params)
 
@@ -78,7 +77,7 @@ class SteamAPI:
             # Indicates unauthorizated request to a private profile
             return None
         else:
-            raise SteamAPIInvalidResponse(response)
+            raise SteamAPIInvalidResponse("Invalid response. Request: {}".format(response.url))
 
     @classmethod
     def post(cls, interface, method, version, data={}):
@@ -104,14 +103,31 @@ class SteamAPI:
 
     #############  IPlayerService Interface ##################
 
-    def get_owned_games(cls):
-        pass
+    @classmethod
+    def get_owned_games(cls, params):
+        ''' Get list of games in player's library.
+            Includes number of minutes played per game and game-specific info
+            @param dict params: {"steamid": "steam_id", "include_played_free_games": 1, "include_appinfo": 1}
+        '''
+        return cls.get(cls.IPLAYER_SERVICE, cls.GET_OWNED_GAMES, 'v1', cls._build_params_dict(params))
 
-    def get_recently_played_games(cls):
-        pass
+    @classmethod
+    def get_recently_played_games(cls, params):
+        ''' Get list of recently played games
+            @param dict params: {"steamid": "steam_id"}
+        '''
+        return cls.get(cls.IPLAYER_SERVICE, cls.GET_RECENTLY_PLAYED_GAMES, 'v1', cls._build_params_dict(params))
 
-    def get_steam_level(cls):
-        pass
+    @classmethod
+    def get_steam_level(cls, params):
+        ''' Get a player's Steam level (Steam community metagame)
+            @param dict params: {"steamid": "steam_id"}
+        '''
+        return cls.get(cls.IPLAYER_SERVICE, cls.GET_STEAM_LEVEL, 'v1', cls._build_params_dict(params))
 
-    def get_badges(cls):
-        pass
+    @classmethod
+    def get_badges(cls, params):
+        ''' Get list of player badges
+            @param dict params: {"steamid": "steam_id"}
+        '''
+        return cls.get(cls.IPLAYER_SERVICE, cls.GET_BADGES, 'v1', cls._build_params_dict(params))

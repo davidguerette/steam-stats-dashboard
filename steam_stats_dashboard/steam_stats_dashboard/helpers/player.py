@@ -1,19 +1,37 @@
 '''
-Module to handle all API calls for requested player
+Player object module to handle all API calls for requested player.
+May be reworked at a later time to be a proper ORM Django model.
 '''
 from .steam_api import SteamAPI, SteamAPIInvalidUserError
 
 class Player:
     def __init__(self, steam_id):
         self.steam_id = steam_id
+        self.profile_url = None
+        self.persona_name = None
+        self.avatar = None
+        self.avatar_medium = None
+        self.avatar_full = None
 
     # ISteamUser
-    def load_from_steam_id(self):
-        ''' Load player attributes from SteamAPI get_player_summaries call '''
-        pass
+    def load_player_details(self):
+        ''' Load player attributes from SteamAPI GetPlayerSummaries call.
+            If no value available, set attribute to None
+        '''
+        response = SteamAPI.get_player_summaries({'steamids': self.steam_id})
+        player_details = response.json()['response']['players'][0]
+
+        self.profile_url = player_details.get('profileurl')
+        self.persona_name = player_details.get('personaname')
+        self.avatar = player_details.get('avatar')
+        self.avatar_medium = player_details.get('avatarmedium')
+        self.avatar_full = player_details.get('avatarfull')
+
+        return player_details
 
     def get_player_summaries(self):
-        return SteamAPI.get_player_summaries({'steamid': self.steam_id})
+        # return SteamAPI.get_player_summaries({'steamids': self.steam_id})
+        pass
 
     def get_friend_list(self):
         ''' Public profile only '''
@@ -21,17 +39,20 @@ class Player:
 
     # IPlayerService
     def get_owned_games(self):
-        pass
+        return SteamAPI.get_owned_games({
+            'steamid': self.steam_id,
+            'include_played_free_games': 1,
+            'include_appinfo': 1,
+        })
 
     def get_recently_played_games(self):
-        pass
+        return SteamAPI.get_recently_played_games({'steamid': self.steam_id})
 
     def get_steam_level(self):
-        pass
+        return SteamAPI.get_steam_level({'steamid': self.steam_id})
 
     def get_badges(self):
-        pass
-
+        return SteamAPI.get_badges({'steamid': self.steam_id})
 
     ############# Helper methods ###############
 
@@ -43,7 +64,6 @@ class Player:
 
         try:
             steam_id = response.json()['response']['players'][0]['steamid']
-            print(steam_id)
         except (KeyError, TypeError) as e:
             raise SteamAPIInvalidUserError("Could not validate user-input steam id: {}".format(e))
 
