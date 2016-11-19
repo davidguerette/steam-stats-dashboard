@@ -1,14 +1,17 @@
 '''
 Steam API module
 
-Steam API request format: # http://api.steampowered.com/<interface>/<method>/<method_version>?<params>
+Steam API request format: http://api.steampowered.com/<interface>/<method>/<method_version>?<params>
 API documentation: http://steamwebapi.azurewebsites.net
 '''
 from django.conf import settings
 
+from collections import namedtuple
 import json
 
 import requests
+
+from .constants import Interfaces as i, Methods as m, Version as v
 
 class SteamAPIInvalidResponse(Exception):
     pass
@@ -18,32 +21,11 @@ class SteamAPIInvalidUserError(Exception):
 
 class SteamAPI:
     BASE_URL = "http://api.steampowered.com"
+    # Interface, method, and version values for the relative url contained in constants.py
 
     # USER ID LOOKUP
     NAME_SUCCESS_MATCH = 1
     NAME_NO_MATCH = 42
-
-    # INTERFACES
-    ISTEAM_USER = 'ISteamUser'
-    ISTEAM_USER_STATS = 'ISteamUserStats'
-    IPLAYER_SERVICE = 'IPlayerService'
-
-    # METHODS
-    GET_FRIEND_LIST = 'GetFriendList'
-    GET_PLAYER_SUMMARIES = 'GetPlayerSummaries'
-    RESOLVE_VANITY_URL = 'ResolveVanityURL'
-
-    GET_GLOBAL_ACHIEVEMENT_PERCENTAGES_FOR_APP = 'GetGlobalAchievementPercentagesForApp'
-    GET_GLOBAL_STATS_FOR_GAME = 'GetGlobalStatsForGame'
-    GET_NUMBER_OF_CURRENT_PLAYERS ='GetNumberOfCurrentPlayers'
-    GET_PLAYER_ACHIEVEMENTS = 'GetPlayerAchievements'
-    GET_SCHEMA_FOR_GAME = 'GetSchemaForGame'
-    GET_USER_STATS_FOR_GAME = 'GetUserStatsForGame'
-
-    GET_RECENTLY_PLAYED_GAMES = 'GetRecentlyPlayedGames'
-    GET_OWNED_GAMES = 'GetOwnedGames'
-    GET_STEAM_LEVEL = 'GetSteamLevel'
-    GET_BADGES = 'GetBadges'
 
     @classmethod
     def _build_url(cls, interface, method, version):
@@ -88,18 +70,15 @@ class SteamAPI:
 
     @classmethod
     def get_player_summaries(cls, params):
-        return cls.get(cls.ISTEAM_USER, cls.GET_PLAYER_SUMMARIES, 'v2', cls._build_params_dict(params))
+        return cls.get(i.ISTEAM_USER, m.GET_PLAYER_SUMMARIES, v.V2, cls._build_params_dict(params))
 
     @classmethod
     def get_friend_list(cls, params):
-        return cls.get(cls.ISTEAM_USER, cls.GET_FRIEND_LIST, 'v1', cls._build_params_dict(params))
+        return cls.get(i.ISTEAM_USER, m.GET_FRIEND_LIST, v.V1, cls._build_params_dict(params))
 
     @classmethod
     def resolve_vanity_url(cls, params):
-        return cls.get(cls.ISTEAM_USER, cls.RESOLVE_VANITY_URL, 'v1', cls._build_params_dict(params))
-
-    #############  ISteamUserStats Interface  ##################
-
+        return cls.get(i.ISTEAM_USER, m.RESOLVE_VANITY_URL, v.V1, cls._build_params_dict(params))
 
     #############  IPlayerService Interface ##################
 
@@ -109,25 +88,35 @@ class SteamAPI:
             Includes number of minutes played per game and game-specific info
             @param dict params: {"steamid": "steam_id", "include_played_free_games": 1, "include_appinfo": 1}
         '''
-        return cls.get(cls.IPLAYER_SERVICE, cls.GET_OWNED_GAMES, 'v1', cls._build_params_dict(params))
+        return cls.get(i.IPLAYER_SERVICE, m.GET_OWNED_GAMES, v.V1, cls._build_params_dict(params))
 
     @classmethod
     def get_recently_played_games(cls, params):
         ''' Get list of recently played games
             @param dict params: {"steamid": "steam_id"}
         '''
-        return cls.get(cls.IPLAYER_SERVICE, cls.GET_RECENTLY_PLAYED_GAMES, 'v1', cls._build_params_dict(params))
+        return cls.get(i.IPLAYER_SERVICE, m.GET_RECENTLY_PLAYED_GAMES, v.V1, cls._build_params_dict(params))
 
     @classmethod
     def get_steam_level(cls, params):
         ''' Get a player's Steam level (Steam community metagame)
             @param dict params: {"steamid": "steam_id"}
         '''
-        return cls.get(cls.IPLAYER_SERVICE, cls.GET_STEAM_LEVEL, 'v1', cls._build_params_dict(params))
+        return cls.get(i.IPLAYER_SERVICE, m.GET_STEAM_LEVEL, v.V1, cls._build_params_dict(params))
 
     @classmethod
     def get_badges(cls, params):
         ''' Get list of player badges
             @param dict params: {"steamid": "steam_id"}
         '''
-        return cls.get(cls.IPLAYER_SERVICE, cls.GET_BADGES, 'v1', cls._build_params_dict(params))
+        return cls.get(i.IPLAYER_SERVICE, m.GET_BADGES, v.V1, cls._build_params_dict(params))
+
+    #############  ISteamUserStats Interface  ##################
+    # METHODS NOT YET IMPLEMENTED:
+    # GetGlobalAchievementPercentagesForApp
+    # GetGlobalStatsForGame
+    # GetNumberOfCurrentPlayers
+    # GetPlayerAchievements
+    # GetSchemaForGame
+    # GetUserStatsForGame
+

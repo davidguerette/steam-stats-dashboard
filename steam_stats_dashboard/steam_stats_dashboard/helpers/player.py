@@ -54,6 +54,8 @@ class Player:
     def get_badges(self):
         return SteamAPI.get_badges({'steamid': self.steam_id})
 
+    # ISteamUserStats methods - not yet implemented
+
     ############# Helper methods ###############
 
     def validate_user_input_steam_id(self):
