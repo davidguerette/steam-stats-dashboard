@@ -45,9 +45,9 @@ class SteamAPI:
     @classmethod
     def get(cls, interface, method, version, params={}):
         ''' Make a GET request to AppNexus API
-            @param class const interface
-            @param class const method
-            @param class const version
+            @param const interface
+            @param const method
+            @param const version
             @param dict params
             @return response if success, None if unauthorized request
         '''
@@ -92,7 +92,7 @@ class SteamAPI:
 
     @classmethod
     def get_recently_played_games(cls, params):
-        ''' Get list of recently played games
+        ''' Get list of recently played games (last two weeks)
             @param dict params: {"steamid": "steam_id"}
         '''
         return cls.get(i.IPLAYER_SERVICE, m.GET_RECENTLY_PLAYED_GAMES, v.V1, cls._build_params_dict(params))
@@ -117,6 +117,4 @@ class SteamAPI:
     # GetGlobalStatsForGame
     # GetNumberOfCurrentPlayers
     # GetPlayerAchievements
-    # GetSchemaForGame
     # GetUserStatsForGame
-
