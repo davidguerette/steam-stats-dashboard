@@ -2,9 +2,10 @@
 Player object module to handle all API calls for requested player.
 May be reworked at a later time to be a proper ORM Django model.
 '''
+from collections import namedtuple
+
 from .game import Game
 from .steam_api import SteamAPI, SteamAPIInvalidUserError
-
 
 class Player:
     def __init__(self, steam_id):
@@ -93,6 +94,8 @@ class Player:
                          game['playtime_forever'],
                          playtime_mins_two_weeks))
 
+    ###### Time Played #######
+
     def total_playtime_mins(self):
         ''' Sum and return total playtime across all games for the player '''
         if not self.games_owned:
@@ -107,6 +110,49 @@ class Player:
             self.load_games_owned()
 
         return sum([int(game.playtime_mins_two_weeks) for game in self.games_owned if game.playtime_mins_two_weeks])
+
+    @staticmethod
+    def mins_to_time_played_dict(mins_played):
+        ''' Build dict of time played in years, weeks, days, hours, minutes
+            @param int mins_played: total number of minutes played
+            @return dict time_played_dict
+        '''
+        mins_per_year = 524160
+        mins_per_week = 10080
+        mins_per_day = 1440
+        mins_per_hour = 60
+
+        time_played_dict = {
+            "years": None,
+            "weeks": None,
+            "days": None,
+            "hours": None,
+            "minutes": None,
+        }
+
+        while mins_played:
+            if mins_played >= mins_per_year:
+                years = int(mins_played / mins_per_year)
+                time_played_dict['years'] = years
+                mins_played -= years * mins_per_year
+            elif mins_per_week <= mins_played < mins_per_year:
+                weeks = int(mins_played / mins_per_week)
+                time_played_dict['weeks'] = weeks
+                mins_played -= weeks * mins_per_week
+            elif mins_per_day <= mins_played < mins_per_week:
+                days = int(mins_played / mins_per_day)
+                time_played_dict['days'] = days
+                mins_played -= days * mins_per_day
+            elif mins_per_hour <= mins_played < mins_per_day:
+                hours = int(mins_played / mins_per_hour)
+                time_played_dict['hours'] = hours
+                mins_played -= hours * mins_per_hour
+            else:
+                minutes = int(mins_played)
+                time_played_dict['minutes'] = minutes
+                mins_played -= minutes
+
+        return time_played_dict
 
     def validate_user_input_steam_id(self):
         ''' Validate the user-provided 64 bit steam_id (instance attribute) is valid
