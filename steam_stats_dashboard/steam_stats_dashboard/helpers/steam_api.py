@@ -5,18 +5,21 @@ Steam API request format: http://api.steampowered.com/<interface>/<method>/<meth
 API documentation: http://steamwebapi.azurewebsites.net
 '''
 from django.conf import settings
-
-from collections import namedtuple
 import json
 
 import requests
 
 from .constants import Interfaces as i, Methods as m, Version as v
 
-class SteamAPIInvalidResponse(Exception):
+
+class SteamAPIError(Exception):
+    ''' Generic exception for SteamAPI errors '''
     pass
 
-class SteamAPIInvalidUserError(Exception):
+class SteamAPIInvalidResponse(SteamAPIError):
+    pass
+
+class SteamAPIInvalidUserError(SteamAPIError):
     pass
 
 class SteamAPI:
@@ -69,47 +72,59 @@ class SteamAPI:
     #############  ISteamUser Interface ##################
 
     @classmethod
-    def get_player_summaries(cls, params):
-        return cls.get(i.ISTEAM_USER, m.GET_PLAYER_SUMMARIES, v.V2, cls._build_params_dict(params))
+    def get_player_summaries(cls, steam_ids):
+        ''' Get info for provided steam id(s)
+            @param list steam_ids: list of id64 steam ids to retrieve profile data (100 max per request)
+        '''
+        if isinstance(steam_ids, list) and len(steam_ids) > 0:
+            steam_id_list = ",".join(steam_ids)
+            return cls.get(i.ISTEAM_USER, m.GET_PLAYER_SUMMARIES, v.V2, cls._build_params_dict({'steamids': steam_id_list}))
+        else:
+            raise TypeError("Must provide valid list of Steam IDs")
 
     @classmethod
-    def get_friend_list(cls, params):
-        return cls.get(i.ISTEAM_USER, m.GET_FRIEND_LIST, v.V1, cls._build_params_dict(params))
+    def get_friend_list(cls, steam_id):
+        ''' Return list of friends for provided steam id '''
+        return cls.get(i.ISTEAM_USER, m.GET_FRIEND_LIST, v.V1, cls._build_params_dict({"steamid": steam_id}))
 
     @classmethod
-    def resolve_vanity_url(cls, params):
-        return cls.get(i.ISTEAM_USER, m.RESOLVE_VANITY_URL, v.V1, cls._build_params_dict(params))
+    def resolve_vanity_url(cls, input_user_name):
+        ''' Return SteamID64 for provided vanity url name, if set up for profile '''
+        return cls.get(i.ISTEAM_USER, m.RESOLVE_VANITY_URL, v.V1, cls._build_params_dict({'vanityurl': input_user_name}))
 
     #############  IPlayerService Interface ##################
 
     @classmethod
-    def get_owned_games(cls, params):
-        ''' Get list of games in player's library.
+    def get_owned_games(cls, steam_id, include_played_free_games=1, include_appinfo=1):
+        ''' Get list of games in library of player for steam id given.
             Includes number of minutes played per game and game-specific info
-            @param dict params: {"steamid": "steam_id", "include_played_free_games": 1, "include_appinfo": 1}
         '''
-        return cls.get(i.IPLAYER_SERVICE, m.GET_OWNED_GAMES, v.V1, cls._build_params_dict(params))
+        return cls.get(i.IPLAYER_SERVICE, m.GET_OWNED_GAMES, v.V1, cls._build_params_dict({
+            'steamid': steam_id,
+            'include_played_free_games': include_played_free_games,
+            'include_appinfo': include_appinfo
+        }))
 
     @classmethod
-    def get_recently_played_games(cls, params):
+    def get_recently_played_games(cls, steam_id):
         ''' Get list of recently played games (last two weeks)
             @param dict params: {"steamid": "steam_id"}
         '''
-        return cls.get(i.IPLAYER_SERVICE, m.GET_RECENTLY_PLAYED_GAMES, v.V1, cls._build_params_dict(params))
+        return cls.get(i.IPLAYER_SERVICE, m.GET_RECENTLY_PLAYED_GAMES, v.V1, cls._build_params_dict({"steamid": steam_id}))
 
     @classmethod
-    def get_steam_level(cls, params):
+    def get_steam_level(cls, steam_id):
         ''' Get a player's Steam level (Steam community metagame)
             @param dict params: {"steamid": "steam_id"}
         '''
-        return cls.get(i.IPLAYER_SERVICE, m.GET_STEAM_LEVEL, v.V1, cls._build_params_dict(params))
+        return cls.get(i.IPLAYER_SERVICE, m.GET_STEAM_LEVEL, v.V1, cls._build_params_dict({"steamid": steam_id}))
 
     @classmethod
-    def get_badges(cls, params):
+    def get_badges(cls, steam_id):
         ''' Get list of player badges
             @param dict params: {"steamid": "steam_id"}
         '''
-        return cls.get(i.IPLAYER_SERVICE, m.GET_BADGES, v.V1, cls._build_params_dict(params))
+        return cls.get(i.IPLAYER_SERVICE, m.GET_BADGES, v.V1, cls._build_params_dict({"steamid": steam_id}))
 
     #############  ISteamUserStats Interface  ##################
     # METHODS NOT YET IMPLEMENTED:
