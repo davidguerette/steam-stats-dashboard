@@ -51,11 +51,14 @@ class TimeCalc:
     @staticmethod
     def avg_time_per_day(mins_played, start_time):
         ''' Return time dict containing average number of minutes or hours played
-            per day since joining Steam. Round to the nearest minute.
+            per day since a provided start time. Round to the nearest minute.
             @param int mins_played: number of minutes played since the start time
             @param int start_time: epoch time in seconds to use as starting point for calculating average
         '''
-        days_since_joining = int(time.time() - start_time) / MINS_PER_HOUR / HOURS_PER_DAY
-        avg_mins_per_day = round(mins_played / days_since_joining)
+        if mins_played:
+            days_since_start_time = int(time.time() - start_time) / SECONDS_PER_MINUTE / MINS_PER_HOUR / HOURS_PER_DAY
+            avg_mins_per_day = round(mins_played / days_since_start_time)
+        else:
+            avg_mins_per_day = 0
 
         return TimeCalc.mins_to_time_dict(avg_mins_per_day)
