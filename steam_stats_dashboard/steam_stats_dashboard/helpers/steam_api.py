@@ -1,5 +1,5 @@
 '''
-Steam API module
+Steam API wrapper module
 
 Steam API request format: http://api.steampowered.com/<interface>/<method>/<method_version>?<params>
 API documentation: http://steamwebapi.azurewebsites.net
@@ -77,6 +77,8 @@ class SteamAPI:
             @param list steam_ids: list of id64 steam ids to retrieve profile data (100 max per request)
         '''
         if isinstance(steam_ids, list) and len(steam_ids) > 0:
+
+            # TODO - paginate if more than 100 ids given
             steam_id_list = ",".join(steam_ids)
             return cls.get(i.ISTEAM_USER, m.GET_PLAYER_SUMMARIES, v.V2, cls._build_params_dict({'steamids': steam_id_list}))
         else:
@@ -108,21 +110,21 @@ class SteamAPI:
     @classmethod
     def get_recently_played_games(cls, steam_id):
         ''' Get list of recently played games (last two weeks)
-            @param dict params: {"steamid": "steam_id"}
+            @param int steam_id
         '''
         return cls.get(i.IPLAYER_SERVICE, m.GET_RECENTLY_PLAYED_GAMES, v.V1, cls._build_params_dict({"steamid": steam_id}))
 
     @classmethod
     def get_steam_level(cls, steam_id):
         ''' Get a player's Steam level (Steam community metagame)
-            @param dict params: {"steamid": "steam_id"}
+            @param int steam_id
         '''
         return cls.get(i.IPLAYER_SERVICE, m.GET_STEAM_LEVEL, v.V1, cls._build_params_dict({"steamid": steam_id}))
 
     @classmethod
     def get_badges(cls, steam_id):
         ''' Get list of player badges
-            @param dict params: {"steamid": "steam_id"}
+            @param int steam_id
         '''
         return cls.get(i.IPLAYER_SERVICE, m.GET_BADGES, v.V1, cls._build_params_dict({"steamid": steam_id}))
 

@@ -7,67 +7,76 @@ from .steam_api import SteamAPI, SteamAPIInvalidUserError
 from .time_calc import TimeCalc
 
 class Player:
-    def __init__(self, steam_id):
+    def __init__(self, steam_id, is_friend=False):
         self.steam_id = steam_id
-        self.profile_url = None
-        self.persona_name = None
-        self.avatar = None
-        self.avatar_medium = None
-        self.avatar_full = None
-        self.vanity_url_name = None
 
-        # Game collection
+        # Player profile fields
+        self._profile_url = None
+        self._persona_name = None
+        self._avatar = None
+        self._avatar_medium = None
+        self._avatar_full = None
+        self._time_joined = None # Private field, may not be present in profile
+        self._vanity_url_name = None # NYI
+
         self.games_owned = []
+        self.friend_list = []
 
-        # Private field, may not be present in profile
-        self.time_joined = None
-
-        # Load profile, game data, friend list
-        self.load_profile()
-        self.load_games_owned()
-        self.load_friend_list()
+        if is_friend:
+            # Only request data when needed to reduce unnecessary API calls
+            return
+        else:
+            self.load_profile()
+            self.load_games_owned()
+            self.load_friend_list()
 
     def __repr__(self):
         ''' String representation of Player object '''
-        return "Steam User: id={0}, personaname={1}".format(self.steam_id, self.personaname)
+        # return "Steam User: id={0}".format(self.steam_id)
+        return "Steam User: id={0}, personaname={1}".format(self.steam_id, self.profile['persona_name'])
 
-    ################ Helper methods ################
+    @property
+    def profile(self):
+        ''' Return profile data as dict for JSON serialization '''
+        return {
+            'steam_id': self.steam_id,
+            'profile_url': self._profile_url,
+            'persona_name': self._persona_name,
+            'avatar': self._avatar,
+            'avatar_medium': self._avatar_medium,
+            'avatar_full': self._avatar_full,
+            'time_joined': self._time_joined,
+        }
 
-    def load_friend_list(self):
-        friend_list = SteamAPI.get_friend_list(self.steam_id).json()
-
-        if isinstance(friend_list.get('friendslist').get('friends'), list) and \
-                len(friend_list.get('friendslist').get('friends')) > 0:
-            print(friend_list)
-
-    def load_profile(self):
-        ''' Load player profile data from SteamAPI GetPlayerSummaries call.
-            If no value available, player attribute = None
+    def load_profile(self, profile_data=None):
+        ''' Load player profile data from SteamAPI GetPlayerSummaries call, cache lookup,
+            or provided dict profile_data. If no value available, player attribute = None
+            @param dict profile_data: optional arg to pass in profile data directly
         '''
-        # TODO - implement cache
-        response = SteamAPI.get_player_summaries([self.steam_id])
-        profile_data = response.json()['response']['players'][0]
 
-        self.profile_url = profile_data.get('profileurl')
-        self.persona_name = profile_data.get('personaname')
-        self.avatar = profile_data.get('avatar')
-        self.avatar_medium = profile_data.get('avatarmedium')
-        self.avatar_full = profile_data.get('avatarfull')
-        self.time_joined = profile_data.get('timecreated')
+        # TODO - check cache first
+        if not profile_data:
+            response = SteamAPI.get_player_summaries([self.steam_id])
+            profile_data = response.json()['response']['players'][0]
+
+        self._profile_url = profile_data.get('profileurl')
+        self._persona_name = profile_data.get('personaname') or "PRIVATE"
+        self._avatar = profile_data.get('avatar')
+        self._avatar_medium = profile_data.get('avatarmedium')
+        self._avatar_full = profile_data.get('avatarfull')
+        self._time_joined = profile_data.get('timecreated') # public profile only
 
     def load_games_owned(self):
-        ''' Updates games_owned '''
+        ''' Returns list of games (game objects) owned by Player '''
 
         # TODO - implement caching
         games_owned_data = SteamAPI.get_owned_games(self.steam_id).json().get('response').get('games')
 
         if games_owned_data:
-            # Populate list of player's games
             for game in games_owned_data:
 
-                # Determine number of mins played over last 2 weeks
+                # Extract 2 week playtime mins and create game objects for player
                 playtime_mins_two_weeks = game['playtime_2weeks'] if 'playtime_2weeks' in game else 0
-
                 self.games_owned.append(
                     Game(game['appid'],
                          game['name'],
@@ -75,6 +84,33 @@ class Player:
                          game['img_logo_url'],
                          game['playtime_forever'],
                          playtime_mins_two_weeks))
+
+    def load_friend_list(self):
+        ''' Load a player's friend list into self.friend_list. Friends are player
+            instances but with limited profile info.
+            Requires two API calls: first get list of friend steam ids, then
+            get profile info from those ids.
+        '''
+
+        # TODO - implement caching
+
+        # Get basic friend data, including Steam ID
+        friend_steam_ids_response = SteamAPI.get_friend_list(self.steam_id)
+
+        friend_steam_ids = []
+
+        if friend_steam_ids_response:
+            # Get all friend steam ids
+            for friend in friend_steam_ids_response.json()['friendslist']['friends']:
+                friend_steam_ids.append(friend['steamid'])
+
+            # Get profile detail for each friend using steam id
+            friends_full_response = SteamAPI.get_player_summaries(friend_steam_ids).json()['response']['players']
+
+            for friend_details in friends_full_response:
+                friend = Player(friend_details['steamid'], is_friend=True)
+                friend.load_profile(friend_details)
+                self.friend_list.append(friend)
 
     ###### Time Played #######
 
@@ -91,12 +127,12 @@ class Player:
         ''' Return the average number of minutes played per day
             since joining Steam, rounded to the nearest minute
         '''
-        return TimeCalc.avg_time_per_day(self._total_playtime_mins(), self.time_joined)
+        return TimeCalc.avg_time_per_day(self._total_playtime_mins(), self._time_joined)
 
     @property
     def avg_daily_time_two_weeks(self):
-        ''' Return the average number of minutes played per day over
-            the last two weeks, rounded to the nearest minute
+        ''' Return the average time played per day over the last two weeks,
+            rounded to the nearest minute
         '''
         return TimeCalc.avg_time_per_day(self._two_week_playtime_mins(),
                                          TimeCalc.two_weeks_ago_time)
@@ -118,9 +154,15 @@ class Player:
 
     ##### Game Collection Stats ####
 
-    def calculate_collection_score(self):
-        pass
+    @property
+    def games_played(self):
+        ''' Return list of player's games that have been played for one or more minutes '''
+        return [game for game in self.games_owned if game.playtime_mins >= 1]
 
+    @property
+    def games_unplayed(self):
+        ''' Return list of games that have never been played (0 mins) '''
+        return [game for game in self.games_owned if game.playtime_mins == 0]
 
     ###### Profile validation #####
 
