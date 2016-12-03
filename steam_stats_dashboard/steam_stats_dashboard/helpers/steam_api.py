@@ -26,9 +26,9 @@ class SteamAPI:
     BASE_URL = "http://api.steampowered.com"
     # Interface, method, and version values for the relative url contained in constants.py
 
-    # USER ID LOOKUP
     NAME_SUCCESS_MATCH = 1
     NAME_NO_MATCH = 42
+    COMMUNITY_VISIBILITY_STATE_PUBLIC = 3
 
     @classmethod
     def _build_url(cls, interface, method, version):
@@ -129,7 +129,7 @@ class SteamAPI:
         return cls.get(i.IPLAYER_SERVICE, m.GET_BADGES, v.V1, cls._build_params_dict({"steamid": steam_id}))
 
     #############  ISteamUserStats Interface  ##################
-    # METHODS NOT YET IMPLEMENTED:
+    # Methods:
     # GetGlobalAchievementPercentagesForApp
     # GetGlobalStatsForGame
     # GetNumberOfCurrentPlayers
