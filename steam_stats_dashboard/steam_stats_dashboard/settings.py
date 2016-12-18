@@ -15,6 +15,7 @@ try:
 
     STEAM_API_KEY = config['steam_api']['key']
     SECRET_KEY = config['django_secret_key']['secret_key']
+    SOCIAL_AUTH_STEAM_API_KEY = STEAM_API_KEY
 except:
     print('Error getting project keys')
 
@@ -26,9 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -36,7 +35,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'steam_stats_dashboard',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.openid',
 ]
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -117,3 +127,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# django-allauth settings
+SITE_ID = 1
+AUTH_USER_MODEL = 'steam_stats_dashboard.SteamUser'
+SOCIALACCOUNT_ADAPTER = 'steam_stats_dashboard.auth_adapter.SteamSocialAuthAdapter'
+
+ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_USER_MODEL_EMAIL_FIELD = None
