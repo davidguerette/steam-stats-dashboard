@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 
+from steam_stats_dashboard.steam_api.steam_user_profile import SteamUserProfile
+
 class SteamUserManager(BaseUserManager):
     def create_user(self, steam_id, password=None):
         user = self.model(steam_id=steam_id)
@@ -25,6 +27,8 @@ class SteamUser(AbstractBaseUser):
     steam_id = models.CharField(max_length=20, unique=True)
     username = models.CharField(max_length=255) # required field for user model, but here will be unused
 
+    profile = None
+
     USERNAME_FIELD = 'steam_id'
 
     objects = SteamUserManager()
@@ -37,6 +41,11 @@ class SteamUser(AbstractBaseUser):
 
     def get_short_name(self):
         return self.steam_id
+
+    def load_profile(self):
+        ''' Load user's profile information from SteamAPI '''
+        if self.steam_id:
+            self.profile = SteamUserProfile(self.steam_id)
 
     @property
     def is_staff(self):

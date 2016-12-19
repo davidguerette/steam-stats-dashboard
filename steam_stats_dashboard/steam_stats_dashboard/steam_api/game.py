@@ -2,7 +2,7 @@
 Game object module
 '''
 
-from .time_calc import TimeCalc
+from ..helpers.time_calc import TimeCalc
 
 class Game:
     ''' Game object class, representing a Steam game owned by a player '''
