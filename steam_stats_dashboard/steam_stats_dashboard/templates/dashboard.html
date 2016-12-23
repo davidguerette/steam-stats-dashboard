@@ -1,0 +1,20 @@
+{# Access user data through request.user.profile #}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Steam Stats Dashboard</title>
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <div><a href="/accounts/logout/" next="/">Log Out</a></div>
+    {% else %}
+    <h2>USER ISN"T AUTHENTICATED :(</h2>
+    {% endif %}
+    <div>
+        <p>Username: {{ user.profile.profile_dict.persona_name }}</p>
+        <p>Steam member since: {{ user.profile.profile_dict.time_joined|date:"SHORT_DATE_FORMAT" }}</p>
+    </div>
+</body>
+</html>
+

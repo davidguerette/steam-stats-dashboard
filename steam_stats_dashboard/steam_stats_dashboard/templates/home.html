@@ -1,3 +1,7 @@
+{% load socialaccount %}
+
+<a href="{% provider_login_url "openid" openid="http://steamcommunity.com/openid" next="/dashboard/" %}">LOG IN WITH STEAM</a>
+
 <!DOCTYPE html>
 <html>
 <head>

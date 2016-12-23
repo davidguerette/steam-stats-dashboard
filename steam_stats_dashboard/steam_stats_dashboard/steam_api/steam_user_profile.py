@@ -10,10 +10,12 @@ If SteamUserProfile is instantiated with is_friend=True, it represents a user's 
 and only basic profile info will be loaded.
 
 Profile data can only be gathered from public profiles, which is indicated by
-communityvisibilitystate == 3). If public_profile attribute is False, do not attempt
+communityvisibilitystate == 3). If public attribute is False, do not attempt
 to load games or friend list. Private users may be displayed as friends of other
 players, but display data is restricted to their personaname.
 '''
+from datetime import datetime
+
 from .game import Game
 from .steam_api import SteamAPI, SteamAPIInvalidUserError
 from ..helpers.time_calc import TimeCalc
@@ -23,7 +25,7 @@ class SteamUserProfile:
 
     def __init__(self, steam_id, is_friend=False):
         self.steam_id = steam_id
-        self.public_profile = False
+        self.public = False
 
         self.games_owned = []
         self.friend_list = []
@@ -47,16 +49,16 @@ class SteamUserProfile:
 
     @property
     def profile_dict(self):
-        ''' Return profile data as dict for JSON serialization '''
+        ''' Return profile data as dict for access in template '''
         return {
             'steam_id': self.steam_id,
-            'public_profile': self.public_profile,
+            'public': self.public,
             'profile_url': self._profile_url,
             'persona_name': self._persona_name,
             'avatar': self._avatar,
             'avatar_medium': self._avatar_medium,
             'avatar_full': self._avatar_full,
-            'time_joined': self._time_joined,
+            'time_joined': datetime.fromtimestamp(self._time_joined),
         }
 
     def load_player_data(self):
@@ -126,7 +128,7 @@ class SteamUserProfile:
             Set public profile attribute based on 'communityvisibilitystate' value.
         '''
         if profile_data['communityvisibilitystate'] == SteamAPI.COMMUNITY_VISIBILITY_STATE_PUBLIC:
-            self.public_profile = True
+            self.public = True
             self._time_joined = profile_data.get('timecreated')
 
         self._profile_url = profile_data.get('profileurl')

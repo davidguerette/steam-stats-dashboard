@@ -26,12 +26,13 @@ class SteamUser(AbstractBaseUser):
     '''
     steam_id = models.CharField(max_length=20, unique=True)
     username = models.CharField(max_length=255) # required field for user model, but here will be unused
-
-    profile = None
+    is_admin = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'steam_id'
 
     objects = SteamUserManager()
+
+    profile = None
 
     def __str__(self):
         return "SteamID: {}".format(self.steam_id)
