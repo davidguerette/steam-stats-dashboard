@@ -16,15 +16,18 @@ players, but display data is restricted to their personaname.
 '''
 from datetime import datetime
 
+from django.core.cache import cache
+
 from .game import Game
 from .steam_api import SteamAPI, SteamAPIInvalidUserError
+from ..helpers.cache_helper import CacheKey, build_key
 from ..helpers.time_calc import TimeCalc
 
 class SteamUserProfile:
     ''' SteamUserProfile class, representing logged in SteamUser's profile or friend profile '''
 
     def __init__(self, steam_id, is_friend=False):
-        self.steam_id = steam_id
+        self.steam_id = str(steam_id)
         self.public = False
 
         self.games_owned = []
@@ -75,51 +78,60 @@ class SteamUserProfile:
             self.load_friend_list(friend_list_json)
 
     ########## Get player data ##########
-
     def get_profile_json(self):
-        ''' Return player's profile JSON data '''
+        ''' Return player's profile JSON data or None '''
+        cache_key = build_key(CacheKey.USER, self.steam_id, 'profile_data')
+        response = cache.get(cache_key)
 
-        # TODO - Implement caching
+        if not response:
+            response = SteamAPI.get_player_summaries([self.steam_id])
+            cache.set(cache_key, response)
 
-        # Get from API call
-        response = SteamAPI.get_player_summaries([self.steam_id])
-        profile_json = response.json()['response']['players'][0]
-
-        return profile_json
+        try:
+            return response.json()['response']['players'][0]
+        except IndexError:
+            return None
 
     def get_games_owned_json(self):
-        ''' Return list of games owned by player '''
+        ''' Return list of games owned by player or None '''
+        cache_key = build_key(CacheKey.USER, self.steam_id, 'games_owned')
+        response = cache.get(cache_key)
 
-        # TODO - Implement caching
+        if not response:
+            response = SteamAPI.get_owned_games(self.steam_id)
+            cache.set(cache_key, response)
 
-        response = SteamAPI.get_owned_games(self.steam_id)
-        games_owned_json = response.json()['response']['games']
-
-        return games_owned_json
+        return response.json().get('response').get('games')
 
     def get_friend_list_json(self):
-        ''' Return list of friends for current player. Friends are SteamUserProfile instances
-            that are loaded with limited profile info. This requires two requests:
+        ''' Return list of friend profiles for current player or None.
+            If not in cache, this requires two requests:
             (1) get steam_ids for a player's friends.
             (2) request profile info for those ids.
         '''
-        friend_ids = []
+        cache_key = build_key(CacheKey.USER, self.steam_id, 'friend_list')
 
-        # First, get list of Player's friends' Steam ids
-        # TODO - Implement caching
-        friend_ids_response = SteamAPI.get_friend_list(self.steam_id)
+        friend_profiles_response = cache.get(cache_key)
 
-        if not friend_ids_response:
-            return None
+        if not friend_profiles_response:
+            friend_ids = []
 
-        for friend in friend_ids_response.json()['friendslist']['friends']:
-            friend_ids.append(friend['steamid'])
+            # First, get list of user's friends' Steam ids
+            friend_ids_response = SteamAPI.get_friend_list(self.steam_id)
 
-        # Get basic profile info for each friend in friend_ids list.
-        # TODO - Implement caching
-        friends_full_response = SteamAPI.get_player_summaries(friend_ids).json()['response']['players']
+            if not friend_ids_response:
+                return None
 
-        return friends_full_response
+            for friend in friend_ids_response.json()['friendslist']['friends']:
+                friend_ids.append(friend['steamid'])
+
+            # Get basic profile info for each friend in friend_ids list.
+            # Note: 100 ids max per request
+            # TODO: implement multiple request pagination
+            friend_profiles_response = SteamAPI.get_player_summaries(friend_ids).json().get('response').get('players')
+            cache.set(cache_key, friend_profiles_response)
+
+        return friend_profiles_response
 
     ########## Populate SteamUserProfile Methods ##########
 
