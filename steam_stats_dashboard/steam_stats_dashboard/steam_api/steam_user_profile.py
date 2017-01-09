@@ -21,7 +21,6 @@ from django.core.cache import cache
 from .game import Game
 from .steam_api import SteamAPI, SteamAPIInvalidUserError
 from ..helpers.cache_helper import CacheKey, build_key
-from ..helpers.time_calc import TimeCalc
 
 class SteamUserProfile:
     ''' SteamUserProfile class, representing logged in SteamUser's profile or friend profile '''
@@ -29,6 +28,7 @@ class SteamUserProfile:
     def __init__(self, steam_id, is_friend=False):
         self.steam_id = str(steam_id)
         self.public = False
+        self.time_joined = None # Private profile only
 
         self.games_owned = []
         self.friend_list = []
@@ -40,7 +40,6 @@ class SteamUserProfile:
         self._avatar_medium = None
         self._avatar_full = None
         self._vanity_url_name = None
-        self._time_joined = None # Private profile only
 
         # Only request data for friends as needed to prevent unnecessary API calls
         if not is_friend:
@@ -61,7 +60,7 @@ class SteamUserProfile:
             'avatar': self._avatar,
             'avatar_medium': self._avatar_medium,
             'avatar_full': self._avatar_full,
-            'time_joined': datetime.fromtimestamp(self._time_joined),
+            'time_joined': datetime.fromtimestamp(self.time_joined),
         }
 
     def load_player_data(self):
@@ -141,7 +140,7 @@ class SteamUserProfile:
         '''
         if profile_data['communityvisibilitystate'] == SteamAPI.COMMUNITY_VISIBILITY_STATE_PUBLIC:
             self.public = True
-            self._time_joined = profile_data.get('timecreated')
+            self.time_joined = profile_data.get('timecreated')
 
         self._profile_url = profile_data.get('profileurl')
         self._persona_name = profile_data.get('personaname')
@@ -172,49 +171,13 @@ class SteamUserProfile:
 
     ########## Time Played ##########
 
-    def _total_playtime_mins(self):
+    def total_playtime_mins(self):
         ''' Sum and return total playtime across all games for the player '''
         return sum(int(game.playtime_mins) for game in self.games_owned)
 
-    def _two_week_playtime_mins(self):
+    def two_week_playtime_mins(self):
         ''' Return player's total minutes played from the last two weeks '''
         return sum([int(game.playtime_mins_two_weeks) for game in self.games_owned if game.playtime_mins_two_weeks])
-
-    @property
-    def time_played_total_dict(self):
-        ''' Return time dict from lifetime mins played
-            Possible time dict keys: 'years', 'weeks', 'days', 'hours', 'minutes'
-        '''
-        return TimeCalc.mins_to_time_dict(self._total_playtime_mins())
-
-    @property
-    def time_played_past_two_weeks_dict(self):
-        ''' Return time dict from mins played over past two weeks
-            Possible time dict keys: 'years', 'weeks', 'days', 'hours', 'minutes'
-        '''
-        return TimeCalc.mins_to_time_dict(self._two_week_playtime_mins())
-
-    @property
-    def avg_daily_time_lifetime_dict(self):
-        ''' Return time dict of average time played per day since joining Steam.
-            Possible time dict keys: 'days', 'hours', 'minutes'
-        '''
-        avg_mins_per_day = TimeCalc.avg_mins_per_day(self._total_playtime_mins(), self._time_joined)
-        return TimeCalc.mins_to_time_dict(avg_mins_per_day)
-
-    @property
-    def avg_daily_time_two_weeks_dict(self):
-        ''' Return time dict of average time played per day over the last two weeks.
-            Possible time dict keys: 'weeks', 'days', 'hours', 'minutes'
-        '''
-        avg_mins_per_day = TimeCalc.avg_mins_per_day(self._two_week_playtime_mins(),
-                                                     TimeCalc.two_weeks_ago_time)
-        return TimeCalc.mins_to_time_dict(avg_mins_per_day)
-
-    @property
-    def time_played_total_hours(self):
-        ''' Return total number of hours played, rounded to one decimal place '''
-        return TimeCalc.hours_from_minutes(self._total_playtime_mins())
 
     ########## Game Collection Stats ##########
 
@@ -228,7 +191,6 @@ class SteamUserProfile:
         ''' Return list of games that have never been played (0 mins) '''
         return [game for game in self.games_owned if game.playtime_mins == 0]
 
-    @property
     def top_played_games(self, num_games=5):
         ''' Sort self.games_owned by number of mins played (desc) and return requested number of games
             @param int num_games: number of games to return

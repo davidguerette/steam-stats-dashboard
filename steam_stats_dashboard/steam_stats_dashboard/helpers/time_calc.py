@@ -1,8 +1,9 @@
 """
 Module to handle calculation of time stat metrics
 """
-import time
+from collections import OrderedDict
 import datetime
+import time
 
 SECONDS_PER_MINUTE = 60
 MINS_PER_HOUR = 60
@@ -21,35 +22,36 @@ class TimeCalc:
 
     @staticmethod
     def mins_to_time_dict(total_mins_played):
-        ''' Create dict of years, weeks, days, hours, and minutes from minutes
+        ''' Create ordered dict of years, weeks, days, hours, and minutes from minutes.
+            Keys take singular form to allow pluralization to happen in template filters.
             @param int total_mins_played: total number of minutes played
             @return dict time_played_dict
         '''
-        time_played_dict = {}
+        time_played_dict = OrderedDict()
         mins_remainder = total_mins_played
 
         # Years
         time_value, mins_remainder = divmod(mins_remainder, MINS_PER_YEAR)
         if time_value:
-            time_played_dict['years'] = int(time_value)
+            time_played_dict['year'] = int(time_value)
 
         # Weeks
         time_value, mins_remainder = divmod(mins_remainder, MINS_PER_WEEK)
         if time_value:
-            time_played_dict['weeks'] = int(time_value)
+            time_played_dict['week'] = int(time_value)
 
         # Days
         time_value, mins_remainder = divmod(mins_remainder, MINS_PER_DAY)
         if time_value:
-            time_played_dict['days'] = int(time_value)
+            time_played_dict['day'] = int(time_value)
 
         # Hours
         time_value, mins_remainder = divmod(mins_remainder, MINS_PER_HOUR)
         if time_value:
-            time_played_dict['hours'] = int(time_value)
+            time_played_dict['hour'] = int(time_value)
 
         # Minutes (remainder)
-        time_played_dict['minutes'] = int(mins_remainder)
+        time_played_dict['minute'] = int(mins_remainder)
 
         return time_played_dict
 

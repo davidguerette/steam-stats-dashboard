@@ -1,12 +1,15 @@
+"""
+Steam Stats Dashoard views module
+"""
+import re
+
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
-import re
-
 from .steam_api.steam_user_profile import SteamUserProfile
-from .steam_api.steam_api import SteamAPIInvalidUserError
+from .helpers.panel_data import PanelData
 
 def home(request):
     ''' View for site home '''
@@ -14,16 +17,31 @@ def home(request):
 
 @login_required
 def dashboard(request):
-    ''' Dashboard view '''
-    context = {}
-
+    ''' Dashboard view
+        SteamUser's profile data accessible in template through request.user.profile.
+        Other dashboard panel info in context.
+    '''
     request.user.load_profile()
 
     if not request.user.profile.public:
         # User's profile is private, no data to display
         return render(request, 'private-profile.html')
 
-    # SteamUser's profile data accessible in template through request.user.profile
+    # get dashboard panel data
+    panel_data = PanelData(request.user.profile)
+
+    time_played = {
+        'lifetime_hours': panel_data.time_played_hours_total(),
+        'lifetime_time_dict': panel_data.time_played_dict_total(),
+        'lifetime_daily_avg': panel_data.avg_daily_hours_total(),
+        'lifetime_daily_avg_dict': panel_data.avg_daily_time_dict_total(),
+    }
+
+    # build context dict
+    context = {}
+
+    context['time_played'] = time_played
+
     return render(request, 'dashboard.html', context)
 
 def get_steam_id_public(request):
