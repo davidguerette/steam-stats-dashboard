@@ -14,8 +14,8 @@ class Game:
         '''
         self.app_id = game_dict['appid']
         self.name = game_dict['name']
-        self.icon_img = game_dict['img_icon_url']
-        self.logo_img = game_dict['img_logo_url']
+        self._icon_img = game_dict['img_icon_url']
+        self._logo_img = game_dict['img_logo_url']
 
         # Player-specific fields
         self.playtime_mins = game_dict['playtime_forever']
@@ -23,6 +23,16 @@ class Game:
 
     def __repr__(self):
         return "{0} - App ID: {1}".format(self.name, self.app_id)
+
+    @property
+    def icon_img(self):
+        ''' Build and return full url for game icon img '''
+        return "http://media.steampowered.com/steamcommunity/public/images/apps/{0}/{1}.jpg".format(self.app_id, self._icon_img)
+
+    @property
+    def logo_img(self):
+        ''' Build and return full url for game logo img '''
+        return "http://media.steampowered.com/steamcommunity/public/images/apps/{0}/{1}.jpg".format(self.app_id, self._logo_img)
 
     @property
     def time_played_total_dict(self):
