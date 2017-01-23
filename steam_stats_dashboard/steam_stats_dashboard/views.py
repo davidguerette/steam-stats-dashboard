@@ -9,17 +9,17 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from .steam_api.steam_user_profile import SteamUserProfile
-from .helpers.panel_data import PanelData
+from .helpers.panel_data import PanelDataTimePlayed, PanelDataCollection
 
 def home(request):
     ''' View for site home '''
     return render(request, 'home.html')
 
 @login_required
-def dashboard(request):
-    ''' Dashboard view
+def dashboard_profile(request):
+    ''' Dashboard profile stats view
         SteamUser's profile data accessible in template through request.user.profile.
-        Other dashboard panel info in context.
+        Other panel data in context.
     '''
     request.user.load_profile()
 
@@ -28,21 +28,30 @@ def dashboard(request):
         return render(request, 'private-profile.html')
 
     # get dashboard panel data
-    panel_data = PanelData(request.user.profile)
+    panel_data_time_played = PanelDataTimePlayed(request.user.profile)
+    panel_data_collection = PanelDataCollection(request.user.profile)
 
-    time_played = {
-        'lifetime_hours': panel_data.time_played_hours_total(),
-        'lifetime_time_dict': panel_data.time_played_dict_total(),
-        'lifetime_daily_avg': panel_data.avg_daily_hours_total(),
-        'lifetime_daily_avg_dict': panel_data.avg_daily_time_dict_total(),
-    }
-
-    # build context dict
     context = {}
 
-    context['time_played'] = time_played
+    context['time_played'] = {
+        'lifetime_hours': panel_data_time_played.time_played_hours_total(),
+        'lifetime_time_dict': panel_data_time_played.time_played_dict_total(),
+        'lifetime_daily_avg': panel_data_time_played.avg_daily_hours_total(),
+        'lifetime_daily_avg_dict': panel_data_time_played.avg_daily_time_dict_total(),
+    }
 
-    return render(request, 'dashboard.html', context)
+    # Rename to library
+    games_played, games_unplayed = panel_data_collection.played_and_unplayed_lists(played_mins_threshold=30)
+    games_played_percent = round(len(games_played) / len(request.user.profile.games_owned) * 100)
+
+    context['collection'] = {
+        'top_played_games': panel_data_collection.top_played_games(num_games=3),
+        'games_played': games_played,
+        'games_unplayed': games_unplayed,
+        'games_played_percent': games_played_percent,
+    }
+
+    return render(request, 'profile-stats.html', context)
 
 def get_steam_id_public(request):
     ''' Get user's Steam id to be used for subsequent API calls using available public profile data '''

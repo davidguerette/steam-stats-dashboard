@@ -169,17 +169,7 @@ class SteamUserProfile:
                 friend.load_profile(friend_profile_dict)
                 self.friend_list.append(friend)
 
-    ########## Time Played ##########
-
-    def total_playtime_mins(self):
-        ''' Sum and return total playtime across all games for the player '''
-        return sum(int(game.playtime_mins) for game in self.games_owned)
-
-    def two_week_playtime_mins(self):
-        ''' Return player's total minutes played from the last two weeks '''
-        return sum([int(game.playtime_mins_two_weeks) for game in self.games_owned if game.playtime_mins_two_weeks])
-
-    ########## Game Collection Stats ##########
+    ########## Game Collection ##########
 
     @property
     def games_played(self):
@@ -190,14 +180,6 @@ class SteamUserProfile:
     def games_unplayed(self):
         ''' Return list of games that have never been played (0 mins) '''
         return [game for game in self.games_owned if game.playtime_mins == 0]
-
-    def top_played_games(self, num_games=5):
-        ''' Sort self.games_owned by number of mins played (desc) and return requested number of games
-            @param int num_games: number of games to return
-            @return list of game objects, ordered highest to lowest by number of minutes played
-        '''
-        self.games_owned.sort(key=lambda x: x.playtime_mins, reverse=True)
-        return self.games_owned[:num_games]
 
     ########## Profile validation (non-auth) methods ##########
 
